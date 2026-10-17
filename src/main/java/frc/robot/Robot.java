@@ -4,11 +4,8 @@
 
 package frc.robot;
 
-import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.TimedRobot;
-import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 
 /**
  * The methods in this class are called automatically corresponding to each
@@ -17,35 +14,38 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
  * the Main.java file in the project.
  */
 public class Robot extends TimedRobot {
-    // private final Elevator elevator = new
-    // Elevator(NetworkTableInstance.getDefault());
-    private final ElevatorWithMotionMagic elevatorWithMotionMagic = new ElevatorWithMotionMagic(
-            NetworkTableInstance.getDefault());
-    private final CommandXboxController controller = new CommandXboxController(0);
+    private final Elevator elevator = new Elevator(NetworkTableInstance.getDefault());
+    // private final ElevatorWithMotionMagic elevatorWithMotionMagic = new
+    // ElevatorWithMotionMagic(
+    // NetworkTableInstance.getDefault());
+    // private final CommandXboxController controller = new CommandXboxController(0);
 
     /**
      * This function is run when the robot is first started up and should be used
      * for any initialization code.
      */
     public Robot() {
-        elevatorWithMotionMagic.setDefaultCommand(
-                elevatorWithMotionMagic.runManual(() -> MathUtil.applyDeadband(-controller.getLeftY(), 0.1)));
+        // elevatorWithMotionMagic.setDefaultCommand(
+        //         elevatorWithMotionMagic.runManual(() -> MathUtil.applyDeadband(-controller.getLeftY(), 0.1)));
     }
 
     @Override
     public void robotPeriodic() {
+
+        elevator.periodic();
+
         // Runs the Scheduler. This is responsible for polling buttons, adding
         // newly-scheduled commands, running already-scheduled commands, removing
         // finished or interrupted commands, and running subsystem periodic() methods.
         // This must be called from the robot's periodic block in order for anything in
         // the Command-based framework to work.
-        CommandScheduler.getInstance().run();
+        // CommandScheduler.getInstance().run();
     }
 
     @Override
     public void autonomousInit() {
-        // elevator.autonomousInit();
-        elevatorWithMotionMagic.autonomousInit();
+        elevator.autonomousInit();
+        // elevatorWithMotionMagic.autonomousInit();
     }
 
     /** This function is called periodically during autonomous. */
@@ -53,7 +53,7 @@ public class Robot extends TimedRobot {
     public void autonomousPeriodic() {
         // This is the method where the elevator is controlled by a motion profile.
         // It performs a pre-recorded sequence of movements.
-        // elevator.autonomousProfiledPeriodic();
+        elevator.autonomousProfiledPeriodic();
 
         // This is a simpler method where the elevator is controlled by a simple voltage
         // routine.
@@ -61,7 +61,7 @@ public class Robot extends TimedRobot {
 
         // This is the method where the elevator is controlled by a motion magic
         // routine.
-        elevatorWithMotionMagic.autonomousProfiledPeriodic();
+        // elevatorWithMotionMagic.autonomousProfiledPeriodic();
     }
 
     /** This function is called once when teleop is enabled. */
@@ -83,6 +83,7 @@ public class Robot extends TimedRobot {
     @Override
     public void simulationPeriodic() {
         // elevatorWithMotionMagic.simulationPeriodic();
+        elevator.simulationPeriodic();
     }
 
     /** This function is called once when test mode is enabled. */
