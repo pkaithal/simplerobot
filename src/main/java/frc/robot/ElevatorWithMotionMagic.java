@@ -25,6 +25,7 @@ import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.MotionMagicVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.ControlModeValue;
+import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.ctre.phoenix6.sim.TalonFXSimState;
@@ -50,6 +51,8 @@ public class ElevatorWithMotionMagic extends SubsystemBase {
     private final CANBus bus = new CANBus(RIO_CAN_LOOP_NAME);
     private final TalonFX topMotor = new TalonFX(TOP_ELEVATOR_CAN_ID, bus);
     private final TalonFX bottomMotor = new TalonFX(BOTTOM_ELEVATOR_CAN_ID, bus);
+    private final InvertedValue topMotorInverted = InvertedValue.Clockwise_Positive;
+
     // Reusable control request for Motion Magic position control.
     private final MotionMagicVoltage elevatorPositionRequest = new MotionMagicVoltage(0);
     // Reusable control request for duty cycle output.
@@ -84,6 +87,7 @@ public class ElevatorWithMotionMagic extends SubsystemBase {
         TalonFXConfiguration configs = new TalonFXConfiguration()
                 .withMotorOutput(
                         new MotorOutputConfigs()
+                                .withInverted(topMotorInverted)
                                 .withNeutralMode(NeutralModeValue.Brake))
                 .withCurrentLimits(
                         new CurrentLimitsConfigs()
@@ -163,10 +167,11 @@ public class ElevatorWithMotionMagic extends SubsystemBase {
         topMotorSim.setSupplyVoltage(RobotController.getBatteryVoltage()); //
 
         // Fetch the motor's requested output voltage from the code
-        double motorVoltage = topMotorSim.getMotorVoltage(); //
+        double motorVoltage = topMotorSim.getMotorVoltage();
+        double motorDirection = topMotorInverted == InvertedValue.Clockwise_Positive ? -1.0 : 1.0;
 
         // Pass the voltage into the physical simulation environment
-        elevatorSim.setInput(motorVoltage);
+        elevatorSim.setInput(motorDirection * motorVoltage);
 
         // Step the simulation forward by 20ms (standard robot loop)
         elevatorSim.update(0.020);
@@ -179,8 +184,8 @@ public class ElevatorWithMotionMagic extends SubsystemBase {
 
         // Force the simulated motor's sensor to read our simulated physical mechanism
         // values
-        topMotorSim.setRawRotorPosition(linearTravelToMotorRotations(linearPosition));
-        topMotorSim.setRotorVelocity(linearTravelToMotorRotations(linearVelocity));
+        topMotorSim.setRawRotorPosition(motorDirection * linearTravelToMotorRotations(linearPosition));
+        topMotorSim.setRotorVelocity(motorDirection * linearTravelToMotorRotations(linearVelocity));
     }
 
     // Call from Robot.autonomousInit() to initialize auto states.
