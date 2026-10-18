@@ -32,7 +32,6 @@ import com.ctre.phoenix6.sim.TalonFXSimState;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.networktables.BooleanPublisher;
 import edu.wpi.first.networktables.DoublePublisher;
-import edu.wpi.first.networktables.IntegerPublisher;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.units.measure.Angle;
 import edu.wpi.first.units.measure.Distance;
@@ -59,7 +58,7 @@ public class ElevatorWithMotionMagic extends SubsystemBase {
     // Voltage based routine timer. Used to determine when to change from one
     // phase of the routine to another.
     private final Timer autoTimer = new Timer();
-    private double timerWatermark = 0.0;
+    private Distance currentSetpoint = Meters.of(0.0);
 
     // Simulation-only definitions
     private final TalonFXSimState topMotorSim = topMotor.getSimState();
@@ -69,11 +68,11 @@ public class ElevatorWithMotionMagic extends SubsystemBase {
 
     // Constants for the mechanism simulation parameters
     // 70:12 gearbox; corresponds to motor-rotations/sprocket-rotations conversion
-    private static final double kGearReduction = 70.0 / 12.0;
-    private static final Mass kCarriageMass = Kilograms.of(5.0); // 5 kg elevator carriage
-    private static final Distance kSprocketPitchRadius = Inches.of(1.751 / 2.0); // 1" radius pulley
-    private static final Distance kMinHeight = Meters.of(0.0);
-    private static final Distance kMaxHeight = Meters.of(0.5);
+    private static final double GEAR_REDUCTION = 70.0 / 12.0;
+    private static final Mass CARRIAGE_MASS = Kilograms.of(5.0); // 5 kg elevator carriage
+    private static final Distance SPROCKET_PITCH_RADIUS = Inches.of(1.751 / 2.0); // 1" radius pulley
+    private static final Distance MIN_ELEVATOR_HEIGHT = Meters.of(0.0);
+    private static final Distance MAX_ELEVATOR_HEIGHT = Meters.of(0.5);
 
     private final DoublePublisher profiledSetPointMetersPublisher;
     private final DoublePublisher currentPositionMetersPublisher;
@@ -115,11 +114,11 @@ public class ElevatorWithMotionMagic extends SubsystemBase {
         // 2. Initialize the WPILib elevator physics simulation plant
         elevatorSim = new ElevatorSim(
                 DCMotor.getKrakenX60(2), // Modeling 2 motors total on the gearbox
-                kGearReduction,
-                kCarriageMass.in(Kilograms),
-                kSprocketPitchRadius.in(Meters),
-                kMinHeight.in(Meters),
-                kMaxHeight.in(Meters),
+                GEAR_REDUCTION,
+                CARRIAGE_MASS.in(Kilograms),
+                SPROCKET_PITCH_RADIUS.in(Meters),
+                MIN_ELEVATOR_HEIGHT.in(Meters),
+                MAX_ELEVATOR_HEIGHT.in(Meters),
                 true, // Simulate gravity
                 0.0 // Starting height
         );
@@ -143,7 +142,7 @@ public class ElevatorWithMotionMagic extends SubsystemBase {
      *         distance.
      */
     private static double linearTravelToMotorRotations(double linearTravelMeters) {
-        return (linearTravelMeters / (2 * Math.PI * kSprocketPitchRadius.in(Meters))) * kGearReduction;
+        return (linearTravelMeters / (2 * Math.PI * SPROCKET_PITCH_RADIUS.in(Meters))) * GEAR_REDUCTION;
     }
 
     /**
@@ -155,7 +154,7 @@ public class ElevatorWithMotionMagic extends SubsystemBase {
      *         of motor rotations.
      */
     private static double motorRotationsToLinearTravelMeters(double motorRotations) {
-        return (motorRotations / kGearReduction) * (2 * Math.PI * kSprocketPitchRadius.in(Meters));
+        return (motorRotations / GEAR_REDUCTION) * (2 * Math.PI * SPROCKET_PITCH_RADIUS.in(Meters));
     }
 
     @Override
@@ -194,6 +193,7 @@ public class ElevatorWithMotionMagic extends SubsystemBase {
         // That assumes that the elevator is physically at the bottom of its travel at
         // the start of autonomous.
         topMotor.setPosition(0.0);
+        currentSetpoint = Meters.of(0.0);
     }
 
     /**
@@ -226,36 +226,29 @@ public class ElevatorWithMotionMagic extends SubsystemBase {
                 .withPosition(Rotations.of(linearTravelToMotorRotations(position.in(Meters)))));
     }
 
-    /**
-     * An autoroutine frame specifying the time at which the autoroutine gets a new
-     * setpoint position.
-     */
-    private record AutoroutineSetpoint(double time, Distance position) {
-    };
-
-    /** The autoroutine sequence. */
-    private final ArrayList<AutoroutineSetpoint> autoRoutine = new ArrayList<>(Arrays.asList(
-            new AutoroutineSetpoint(0.0, Meters.of(0.0)), // Start at bottom
-            new AutoroutineSetpoint(4.0, Meters.of(0.4)), // Move to top
-            new AutoroutineSetpoint(6.0, Meters.of(0.2)), // Move to midway
-            new AutoroutineSetpoint(8.0, Meters.of(0.0)), // Move to bottom
-            new AutoroutineSetpoint(10.0, Meters.of(0.4)), // Move to top
-            new AutoroutineSetpoint(12.0, Meters.of(0.0)) // Move to bottom
-    ));
-
     public void autonomousProfiledPeriodic() {
         double elapsedTime = autoTimer.get();
-        boolean isNewSetpoint = false;
-        for (var setpoint : autoRoutine) {
-            if (timerWatermark <= setpoint.time() && setpoint.time() < elapsedTime) {
-                // Update the setpoint to the next one in the routine.
-                setPositionSetpoint(setpoint.position());
-                isNewSetpoint = true;
-                break;
-            }
+        Distance targetPosition = Meters.of(0.0);
+        if (elapsedTime < 4.0) {
+            targetPosition = Meters.of(0.4); // Top
+        } else if (elapsedTime < 6.0) {
+            targetPosition = Meters.of(0.2); // Midway
+        } else if (elapsedTime < 8.0) {
+            targetPosition = Meters.of(0.0); // Bottom
+            // Set target back at the bottom.
+        } else if (elapsedTime < 10.0) {
+            targetPosition = Meters.of(0.4); // Top
+        } else {
+            targetPosition = Meters.of(0.0); // Bottom
         }
-        isNewSetpointPublisher.set(isNewSetpoint);
-        timerWatermark = elapsedTime;
+
+        if (targetPosition != currentSetpoint) {
+            currentSetpoint = targetPosition;
+            setPositionSetpoint(currentSetpoint);
+            isNewSetpointPublisher.set(true);
+        } else {
+            isNewSetpointPublisher.set(false);
+        }
     }
 
     @Override
