@@ -21,18 +21,25 @@ public class Robot extends TimedRobot {
     // private final Elevator elevator = new
     // Elevator(NetworkTableInstance.getDefault());
 
-    // Option 2: Elevator implementation with Motion Magic.
-    private final ElevatorWithMotionMagic elevatorWithMotionMagic = new ElevatorWithMotionMagic(
+    // Option 2: Elevator implementation with simple voltage control.
+    private final ElevatorWithPositionVoltage elevatorWithPositionVoltage = new ElevatorWithPositionVoltage(
             NetworkTableInstance.getDefault());
-    private final CommandXboxController controller = new CommandXboxController(0);
+
+    // Option 3: Elevator implementation with Motion Magic.
+    // private final ElevatorWithMotionMagic elevatorWithMotionMagic = new
+    // ElevatorWithMotionMagic(
+    // NetworkTableInstance.getDefault());
+    // private final CommandXboxController controller = new
+    // CommandXboxController(0);
 
     /**
      * This function is run when the robot is first started up and should be used
      * for any initialization code.
      */
     public Robot() {
-        elevatorWithMotionMagic.setDefaultCommand(
-                elevatorWithMotionMagic.runManual(() -> MathUtil.applyDeadband(-controller.getLeftY(), 0.1)));
+        // elevatorWithMotionMagic.setDefaultCommand(
+        // elevatorWithMotionMagic.runManual(() ->
+        // MathUtil.applyDeadband(-controller.getLeftY(), 0.1)));
     }
 
     @Override
@@ -40,18 +47,21 @@ public class Robot extends TimedRobot {
 
         // elevator.periodic();
 
+        elevatorWithPositionVoltage.periodic();
+
         // Runs the Scheduler. This is responsible for polling buttons, adding
         // newly-scheduled commands, running already-scheduled commands, removing
         // finished or interrupted commands, and running subsystem periodic() methods.
         // This must be called from the robot's periodic block in order for anything in
         // the Command-based framework to work.
-        CommandScheduler.getInstance().run();
+        // CommandScheduler.getInstance().run();
     }
 
     @Override
     public void autonomousInit() {
         // elevator.autonomousInit();
-        elevatorWithMotionMagic.autonomousInit();
+        elevatorWithPositionVoltage.autonomousInit();
+        // elevatorWithMotionMagic.autonomousInit();
     }
 
     /** This function is called periodically during autonomous. */
@@ -65,9 +75,13 @@ public class Robot extends TimedRobot {
         // routine.
         // elevator.autonomousVoltagePeriodic();
 
+        // This is a simpler method where the elevator is controlled by a simple
+        // PositionVoltage controlled routine.
+        elevatorWithPositionVoltage.autonomousProfiledPeriodic();
+
         // This is the method where the elevator is controlled by a motion magic
         // routine.
-        elevatorWithMotionMagic.autonomousProfiledPeriodic();
+        // elevatorWithMotionMagic.autonomousProfiledPeriodic();
     }
 
     /** This function is called once when teleop is enabled. */
@@ -89,6 +103,7 @@ public class Robot extends TimedRobot {
     @Override
     public void simulationPeriodic() {
         // elevator.simulationPeriodic();
+        elevatorWithPositionVoltage.simulationPeriodic();
     }
 
     /** This function is called once when test mode is enabled. */
