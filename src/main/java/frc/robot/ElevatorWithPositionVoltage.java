@@ -20,6 +20,7 @@ import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
+import com.ctre.phoenix6.sim.ChassisReference;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 
 import edu.wpi.first.math.controller.ElevatorFeedforward;
@@ -123,6 +124,9 @@ public class ElevatorWithPositionVoltage extends SubsystemBase {
                 true, // Simulate gravity
                 0.0 // Starting height
         );
+        topMotorSim.Orientation = topMotorInverted == InvertedValue.Clockwise_Positive
+                ? ChassisReference.Clockwise_Positive
+                : ChassisReference.CounterClockwise_Positive;
 
         motorVoltageSignal = topMotor.getMotorVoltage();
 
@@ -196,10 +200,9 @@ public class ElevatorWithPositionVoltage extends SubsystemBase {
 
         // Fetch the motor's requested output voltage from the code
         double motorVoltage = topMotorSim.getMotorVoltage();
-        double motorDirection = topMotorInverted == InvertedValue.Clockwise_Positive ? -1.0 : 1.0;
 
         // Pass the voltage into the physical simulation environment
-        elevatorSim.setInput(motorDirection * motorVoltage);
+        elevatorSim.setInput(motorVoltage);
 
         // Step the simulation forward by 20ms (standard robot loop)
         elevatorSim.update(0.020);
@@ -211,7 +214,7 @@ public class ElevatorWithPositionVoltage extends SubsystemBase {
 
         // Force the simulated motor's sensor to read our simulated physical mechanism
         // values
-        topMotorSim.setRawRotorPosition(motorDirection * linearPosition / LINEAR_TRAVEL_METERS_PER_MOTOR_ROTATION);
-        topMotorSim.setRotorVelocity(motorDirection * linearVelocity / LINEAR_TRAVEL_METERS_PER_MOTOR_ROTATION);
+        topMotorSim.setRawRotorPosition(linearPosition / LINEAR_TRAVEL_METERS_PER_MOTOR_ROTATION);
+        topMotorSim.setRotorVelocity(linearVelocity / LINEAR_TRAVEL_METERS_PER_MOTOR_ROTATION);
     }
 }
