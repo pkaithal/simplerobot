@@ -28,6 +28,7 @@ import com.ctre.phoenix6.signals.ControlModeValue;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
+import com.ctre.phoenix6.sim.ChassisReference;
 import com.ctre.phoenix6.sim.TalonFXSimState;
 
 import edu.wpi.first.math.system.plant.DCMotor;
@@ -126,6 +127,9 @@ public class ElevatorWithMotionMagic extends SubsystemBase {
                 true, // Simulate gravity
                 0.0 // Starting height
         );
+        topMotorSim.Orientation = topMotorInverted == InvertedValue.Clockwise_Positive
+                ? ChassisReference.Clockwise_Positive
+                : ChassisReference.CounterClockwise_Positive;
 
         var elevatorTable = nt.getTable("Robot/Elevator");
         profiledSetPointMetersPublisher = elevatorTable.getDoubleTopic("profiledSetPointMeters").publish();
@@ -168,10 +172,9 @@ public class ElevatorWithMotionMagic extends SubsystemBase {
 
         // Fetch the motor's requested output voltage from the code
         double motorVoltage = topMotorSim.getMotorVoltage();
-        double motorDirection = topMotorInverted == InvertedValue.Clockwise_Positive ? -1.0 : 1.0;
 
         // Pass the voltage into the physical simulation environment
-        elevatorSim.setInput(motorDirection * motorVoltage);
+        elevatorSim.setInput(motorVoltage);
 
         // Step the simulation forward by 20ms (standard robot loop)
         elevatorSim.update(0.020);
@@ -184,8 +187,8 @@ public class ElevatorWithMotionMagic extends SubsystemBase {
 
         // Force the simulated motor's sensor to read our simulated physical mechanism
         // values
-        topMotorSim.setRawRotorPosition(motorDirection * linearTravelToMotorRotations(linearPosition));
-        topMotorSim.setRotorVelocity(motorDirection * linearTravelToMotorRotations(linearVelocity));
+        topMotorSim.setRawRotorPosition(linearTravelToMotorRotations(linearPosition));
+        topMotorSim.setRotorVelocity(linearTravelToMotorRotations(linearVelocity));
     }
 
     // Call from Robot.autonomousInit() to initialize auto states.
