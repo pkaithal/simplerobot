@@ -88,6 +88,8 @@ public class ElevatorWithPositionVoltage extends SubsystemBase {
     private final DoublePublisher currentPositionMetersPublisher;
     private final DoublePublisher voltagePublisher;
 
+    double targetPositionMeters = 0.0;
+
     public ElevatorWithPositionVoltage(NetworkTableInstance nt) {
         // Configure the motors.
         TalonFXConfiguration configs = new TalonFXConfiguration()
@@ -171,16 +173,28 @@ public class ElevatorWithPositionVoltage extends SubsystemBase {
             targetPositionMeters = 0.0; // 0cm - Bottom
         }
 
+    }
+
+    public void setPosition (Distance setpoint) {
+        targetPositionMeters = setpoint.in(Meters);
+        
+
+
+    }
+
+    @Override
+    public void periodic() {
+        
         // 1. Calculate the next profile state step (dT is typically 0.02s for periodic)
         rotationsSetpoint = rotationsProfile.calculate(0.02, rotationsSetpoint,
                 new TrapezoidProfile.State(targetPositionMeters / LINEAR_TRAVEL_METERS_PER_MOTOR_ROTATION, 0.0));
 
         topMotor.setControl(
-                positionVoltage.withPosition(rotationsSetpoint.position).withVelocity(rotationsSetpoint.velocity));
-    }
+                positionVoltage.withPosition(rotationsSetpoint.position).withVelocity((rotationsSetpoint.velocity)));
 
-    @Override
-    public void periodic() {
+
+
+
         motorVoltageSignal.refresh(); // per Javadoc, this initiates the signal refresh, but does not block for the
                                       // result, which means that here, we'd likely be still publishing the previous
                                       // value.
