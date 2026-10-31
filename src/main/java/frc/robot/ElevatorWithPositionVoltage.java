@@ -175,11 +175,8 @@ public class ElevatorWithPositionVoltage extends SubsystemBase {
 
     }
 
-    public void setPosition (Distance setpoint) {
+    public void setPosition(Distance setpoint) {
         targetPositionMeters = setpoint.in(Meters);
-        
-
-
     }
 
     @Override
@@ -191,8 +188,6 @@ public class ElevatorWithPositionVoltage extends SubsystemBase {
 
         topMotor.setControl(
                 positionVoltage.withPosition(rotationsSetpoint.position).withVelocity((rotationsSetpoint.velocity)));
-
-
 
 
         motorVoltageSignal.refresh(); // per Javadoc, this initiates the signal refresh, but does not block for the

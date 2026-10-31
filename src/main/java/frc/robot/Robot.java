@@ -4,10 +4,14 @@
 
 package frc.robot;
 
+import static edu.wpi.first.units.Units.Centimeters;
+
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 
 /**
@@ -24,6 +28,7 @@ public class Robot extends TimedRobot {
     // Option 2: Elevator implementation with simple voltage control.
     private final ElevatorWithPositionVoltage elevatorWithPositionVoltage = new ElevatorWithPositionVoltage(
             NetworkTableInstance.getDefault());
+    private final CommandXboxController controller = new CommandXboxController(0);
 
     // Option 3: Elevator implementation with Motion Magic.
     // private final ElevatorWithMotionMagic elevatorWithMotionMagic = new
@@ -47,14 +52,14 @@ public class Robot extends TimedRobot {
 
         // elevator.periodic();
 
-        elevatorWithPositionVoltage.periodic();
+        // elevatorWithPositionVoltage.periodic();
 
         // Runs the Scheduler. This is responsible for polling buttons, adding
         // newly-scheduled commands, running already-scheduled commands, removing
         // finished or interrupted commands, and running subsystem periodic() methods.
         // This must be called from the robot's periodic block in order for anything in
         // the Command-based framework to work.
-        // CommandScheduler.getInstance().run();
+        CommandScheduler.getInstance().run();
     }
 
     @Override
@@ -87,6 +92,9 @@ public class Robot extends TimedRobot {
     /** This function is called once when teleop is enabled. */
     @Override
     public void teleopInit() {
+        controller.povUp().onTrue(Commands.runOnce(() -> elevatorWithPositionVoltage.setPosition(Centimeters.of(40)), elevatorWithPositionVoltage));
+        controller.povDown().onTrue(Commands.runOnce(() -> elevatorWithPositionVoltage.setPosition(Centimeters.of(0)), elevatorWithPositionVoltage));
+        controller.povLeft().onTrue(Commands.runOnce(() -> elevatorWithPositionVoltage.setPosition(Centimeters.of(20)), elevatorWithPositionVoltage));
     }
 
     /** This function is called periodically during operator control. */
@@ -103,7 +111,7 @@ public class Robot extends TimedRobot {
     @Override
     public void simulationPeriodic() {
         // elevator.simulationPeriodic();
-        elevatorWithPositionVoltage.simulationPeriodic();
+        // elevatorWithPositionVoltage.simulationPeriodic();
     }
 
     /** This function is called once when test mode is enabled. */
