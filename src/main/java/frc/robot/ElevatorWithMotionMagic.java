@@ -187,7 +187,7 @@ public class ElevatorWithMotionMagic extends SubsystemBase {
 
         // Force the simulated motor's sensor to read our simulated physical mechanism
         // values
-        topMotorSim.setRawRotorPosition(linearTravelToMotorRotations(linearPosition));
+        // topMotorSim.setRawRotorPosition(linearTravelToMotorRotations(linearPosition));
         topMotorSim.setRotorVelocity(linearTravelToMotorRotations(linearVelocity));
     }
 
